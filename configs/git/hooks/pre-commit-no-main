@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# pre-commit hook: block direct commits to main.
+#
+# Install locally:
+#   cp .bloom/stack/configs/git/hooks/pre-commit-no-main .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# Or install globally (one-time):
+#   mkdir -p ~/.git-hooks
+#   cp pre-commit-no-main ~/.git-hooks/pre-commit
+#   chmod +x ~/.git-hooks/pre-commit
+#   git config --global core.hooksPath ~/.git-hooks
+#
+# Salvaged from the council repo's "no commits on main" pattern. Applies the
+# same rule to every bloom-built product.
+
+set -euo pipefail
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+  echo ""
+  echo "ERROR: direct commits to '$branch' are not allowed."
+  echo ""
+  echo "Create a branch instead:"
+  echo "  git checkout -b feat/your-change"
+  echo "  git commit ..."
+  echo "  git push -u origin feat/your-change"
+  echo ""
+  echo "Then open a pull request for review and squash-merge."
+  echo ""
+  exit 1
+fi
+
+exit 0

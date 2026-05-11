@@ -1,0 +1,173 @@
+# Stack Contract — full profile (heavyweight, optional)
+#
+# The full profile preserves the heavyweight thesis from the retired hatch repo.
+# Choose this profile only when the product has clear ownership/portability
+# requirements. Most products should stick with the default `lite` profile in
+# stack.yaml.
+#
+# A product picks this profile at bootstrap; switching from lite to full later
+# is possible but requires an ADR explaining the graduation signal.
+
+version: "0.1.0"
+profile: full
+last_updated: "2026-05-07"
+origin: "Distilled from the retired hatch repo (v0.7.0)."
+
+thesis: "Ownership and portability over time-to-deploy."
+
+graduation_signals:
+  - regulated industry compliance (HIPAA, SOC2, etc.)
+  - on-prem deployment requirement
+  - team > 5 engineers with clear API / UI separation
+  - need to deploy across multiple clouds
+  - need to own auth and db without vendor lock-in
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APPLICATION
+# ─────────────────────────────────────────────────────────────────────────────
+application:
+  monorepo: nx
+  language: typescript
+  language_version: ">=5.4"
+  node: ">=20"
+  apps:
+    - name: website
+      framework: nextjs
+      framework_version: ">=15"
+      router: app
+      purpose: marketing surface
+    - name: dashboard
+      framework: react + vite
+      framework_version: "react@>=18 + vite@>=6"
+      purpose: authenticated SPA, main product
+    - name: api
+      framework: nestjs
+      framework_version: ">=11"
+      purpose: RESTful backend
+  libs:
+    - name: ui
+      purpose: shared UI components (Button, Input, Card, Badge, Alert)
+      variant_system: cva
+    - name: auth
+      purpose: auth context, protected route guards
+    - name: shared
+      purpose: api client, shared types, utilities
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PACKAGE MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+package_manager:
+  tool: pnpm
+  rationale: "Same as lite. pnpm workspaces map well to Nx workspace structure."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTH + DATABASE
+# ─────────────────────────────────────────────────────────────────────────────
+auth_and_db:
+  auth: custom-jwt
+  password_hashing: bcrypt
+  token_strategy: jwt-with-passport
+  database: postgres
+  database_version: ">=16"
+  database_management: docker-compose-managed
+  cache: redis
+  cache_version: ">=7"
+  rationale: |
+    Owned auth and infra. JWT + bcrypt + Postgres-in-Docker is portable across
+    any host. Trade-off: more code to maintain, more operational surface, but
+    zero vendor lock for the auth/db layer.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UI
+# ─────────────────────────────────────────────────────────────────────────────
+ui:
+  styling: tailwindcss
+  components: own-component-library  # in libs/ui, not shadcn
+  variant_system: cva
+  theme:
+    palette: monochrome
+    tailwind_accent: zinc
+    same_ethos_as_lite: true
+  rationale: |
+    Components owned in libs/ui rather than copied in via shadcn. Pays off when
+    multiple apps share the component library (the 3-app monorepo case).
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INFRASTRUCTURE
+# ─────────────────────────────────────────────────────────────────────────────
+infrastructure:
+  containerization: docker
+  orchestration: docker-compose
+  build_strategy: multi-stage
+  services:
+    - postgres
+    - redis
+    - website
+    - dashboard
+    - api
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOYMENT
+# ─────────────────────────────────────────────────────────────────────────────
+deployment:
+  options:
+    - vercel (website)
+    - railway (api)
+    - render (api alternative)
+    - docker_hub (any host)
+  preview_deploys: per-pr-on-vercel
+  rationale: |
+    Multi-target deployment. Different parts of the stack can run on different
+    hosts. Portable by construction.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TESTING
+# ─────────────────────────────────────────────────────────────────────────────
+testing:
+  unit: vitest
+  e2e: playwright
+  e2e_browsers: [chromium, firefox, webkit]
+  coverage_target: critical-path
+  rationale: |
+    Full multi-browser e2e because the dashboard SPA + website + api combination
+    has more failure surface than the lite single-app case.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CI
+# ─────────────────────────────────────────────────────────────────────────────
+ci:
+  platform: github-actions
+  jobs:
+    - typecheck (all projects)
+    - lint (all projects)
+    - build (affected projects via nx affected)
+    - e2e (chromium in CI; full matrix nightly)
+    - npm-audit
+  rationale: |
+    Nx affected commands keep CI fast even as the monorepo grows.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REQUIRED PRODUCT SURFACES
+# ─────────────────────────────────────────────────────────────────────────────
+# Same as lite. Surfaces are independent of profile.
+product_surfaces:
+  required:
+    - marketing (apps/website)
+    - auth (apps/dashboard /login, /signup, /reset-password)
+    - dashboard (apps/dashboard /dashboard)
+  optional:
+    - blog (apps/blog or apps/website /blog)
+    - docs (apps/docs or apps/website /docs)
+  core_user_flow:
+    - landing
+    - signup
+    - dashboard
+    - logout
+  flow_validation: e2e-test
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVIATION POLICY
+# ─────────────────────────────────────────────────────────────────────────────
+deviation_policy: |
+  Same rule as lite: deviations recorded in the product's own decisions/.
+  Three products deviating on the same concern is a signal to update this file.

@@ -1,0 +1,262 @@
+# Stack Contract — lite profile (canonical default)
+#
+# The canonical source of truth for tech defaults across bloom-built products.
+# One concern, one answer. If a product needs to deviate, it records the
+# deviation in its own `decisions/` as an ADR.
+#
+# This file IS the `lite` profile. The `full` profile lives in profiles/full.yaml.
+
+version: "0.1.0"
+last_updated: "2026-05-07"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PROFILES
+# ─────────────────────────────────────────────────────────────────────────────
+# Products bootstrap from one profile. The defaults below describe `lite`.
+# A product may graduate from lite to full if its needs justify it.
+profiles:
+  default: lite
+  available:
+    lite:
+      thesis: "Speed to validation. Vercel + Supabase + single Next.js app."
+      stage_fit: "Discovery, MVP, validation, single-team products."
+      values: "Time-to-deploy over portability. Managed services over ownership."
+      template: "stack/templates/lite/"
+      contract: "this file (stack.yaml)"
+    full:
+      thesis: "Ownership and portability. Nx monorepo + NestJS API + Postgres in Docker + custom auth."
+      stage_fit: "Post-validation products. Regulated. On-prem. Multi-team. Strict portability needs."
+      values: "Vendor independence over time-to-deploy. Owned auth/db over managed."
+      template: "stack/templates/full/"
+      contract: "stack/profiles/full.yaml"
+      origin: "Salvaged from the hatch repo (retired). See hatch/TOMBSTONE.md."
+  guidance: |
+    Default to lite. Choose full only when (a) regulated requirements demand
+    portability, (b) the team is multi-functional and benefits from explicit
+    API/UI separation, or (c) the product has graduated past validation and
+    needs ownership of auth/db. Most products start lite and never graduate;
+    that's a feature, not a failure.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APPLICATION
+# ─────────────────────────────────────────────────────────────────────────────
+application:
+  framework: nextjs
+  framework_version: "latest"
+  language: typescript
+  language_version: ">=5.4"
+  node: ">=20"
+  router: app
+  rendering: server-components-default
+  monorepo: none
+  rationale: |
+    Next.js + Vercel is the fastest path from idea to deployed product for the
+    common case (web SaaS, content site, internal tool). App Router is the
+    forward-compatible choice. Single-app default; Nx adds operational drag
+    that only pays off when multiple deployable apps exist.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PACKAGE MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+package_manager:
+  tool: pnpm
+  rationale: |
+    pnpm is the default for new repos. Content-addressable store saves disk
+    and install time across many side projects; strict dependency resolution
+    catches phantom-dep bugs that fail only in CI; native workspace support
+    makes any future monorepo work natural; Vercel's templates increasingly
+    default to pnpm. One-time install cost (`npm i -g pnpm`) is acceptable.
+  fallback: |
+    npm is acceptable when consuming an external starter that hard-assumes it.
+    Document the deviation in the product's decisions/ when it happens.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTH + DATABASE
+# ─────────────────────────────────────────────────────────────────────────────
+auth_and_db:
+  provider: supabase
+  client: "@supabase/ssr"
+  database: postgres
+  rationale: |
+    Supabase combines auth + Postgres + storage + realtime in one provider with
+    a generous free tier. Reduces vendor count and integration surface for
+    early-stage products. When auth complexity exceeds Supabase's offering
+    (enterprise SSO, complex orgs, B2B teams), revisit Clerk + Neon.
+  alternatives:
+    - "clerk + neon (when auth UX must be best-in-class)"
+    - "auth0 + neon (when enterprise SSO is required)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UI
+# ─────────────────────────────────────────────────────────────────────────────
+ui:
+  styling: tailwindcss
+  components: "shadcn/ui"
+  components_strategy: copy-into-project
+  primitives: radix
+  icons: lucide-react
+  fonts:
+    sans: geist-sans
+    mono: geist-mono
+  theme:
+    palette: monochrome
+    tailwind_accent: zinc
+    background: white
+    background_dark: zinc-950
+    foreground: zinc-900
+    border: zinc-200
+    muted: zinc-500
+    dark_mode_strategy: class
+    border_radius: sm
+    density: compact
+  rationale: |
+    Tailwind + shadcn (copied in, not imported as a package) gives full ownership
+    of UI code with no runtime dependency on a UI vendor. The monochrome zinc
+    palette is the default ethos: minimal, focused, content-forward, no colour
+    accents, no animations.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAYMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+payments:
+  provider: stripe
+  client: "stripe + @stripe/stripe-js"
+  default_flow: "checkout-session + customer-portal"
+  rationale: |
+    Stripe is the default. Use Stripe Checkout / Customer Portal for v0 —
+    custom checkout only when product UX requires it.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EMAIL (TRANSACTIONAL)
+# ─────────────────────────────────────────────────────────────────────────────
+email:
+  provider: resend
+  templating: react-email
+  rationale: |
+    Resend has the cleanest dev experience and pairs natively with React Email.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ANALYTICS + OBSERVABILITY
+# ─────────────────────────────────────────────────────────────────────────────
+analytics:
+  product: posthog
+  web: vercel-analytics
+  errors: sentry
+  rationale: |
+    PostHog for product analytics + feature flags. Vercel Analytics for web vitals.
+    Sentry for error tracking. Three tools, three concerns, no overlap.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOYMENT
+# ─────────────────────────────────────────────────────────────────────────────
+deployment:
+  platform: vercel
+  preview_deploys: true
+  ci: github-actions
+  rationale: |
+    Vercel is the default deployment target. Preview deploys per PR are
+    non-negotiable. GitHub Actions handles CI checks before merge.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STORAGE
+# ─────────────────────────────────────────────────────────────────────────────
+storage:
+  default: supabase-storage
+  upgrade_path: s3-compatible
+  rationale: |
+    Supabase Storage if auth_and_db is Supabase (zero added vendor). Migrate
+    to S3-compatible only when scale or cost demands it.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BACKGROUND JOBS
+# ─────────────────────────────────────────────────────────────────────────────
+background_jobs:
+  default: none
+  upgrade: inngest
+  rationale: |
+    Don't add a job system before you need one. Inngest when async workflows
+    become real (>5 min jobs, retries with state, fan-out).
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TESTING
+# ─────────────────────────────────────────────────────────────────────────────
+testing:
+  unit: vitest
+  e2e: playwright
+  e2e_browsers: [chromium]
+  coverage_target: critical-path
+  rationale: |
+    Vitest for fast logic tests. Playwright for the core user flow only —
+    landing → sign up → core action → log out. Coverage as a metric is rejected;
+    flow validity is the standard.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CODE QUALITY
+# ─────────────────────────────────────────────────────────────────────────────
+code_quality:
+  linting: eslint
+  formatting: prettier
+  type_checking: tsc-strict
+  pre_commit_hooks: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VERSION CONTROL
+# ─────────────────────────────────────────────────────────────────────────────
+version_control:
+  system: git
+  platform: github
+  branch_strategy: feature-branch
+  main_branch: main
+  protected_branches: [main]
+  commit_convention: conventional-commits
+  merge_strategy: squash
+  require_pr: true
+  require_self_review: true
+  no_main_commits: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REQUIRED PRODUCT SURFACES
+# ─────────────────────────────────────────────────────────────────────────────
+product_surfaces:
+  required:
+    - name: marketing
+      path: /
+      auth: false
+    - name: auth
+      paths: [/login, /signup, /reset-password]
+      auth: false
+    - name: dashboard
+      path: /dashboard
+      auth: true
+  optional:
+    - name: blog
+      path: /blog
+      auth: false
+    - name: docs
+      path: /docs
+      auth: false
+  core_user_flow:
+    - landing
+    - signup
+    - dashboard
+    - logout
+  flow_validation: e2e-test
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGS (PORTABLE FRAGMENTS)
+# ─────────────────────────────────────────────────────────────────────────────
+configs:
+  - typescript: configs/typescript/tsconfig.base.json
+  - eslint: configs/eslint/eslint.config.js
+  - prettier: configs/prettier/.prettierrc
+  - github-actions-ci: configs/github/ci.yml
+  - git-no-main-commits: configs/git/hooks/pre-commit-no-main
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVIATION POLICY
+# ─────────────────────────────────────────────────────────────────────────────
+deviation_policy: |
+  Products may deviate from this contract. Each deviation must be recorded in
+  the product's own `decisions/NNNN-deviate-from-stack.md` ADR with rationale.
+  Three or more products deviating on the same concern is a signal to update
+  this contract — open an ADR in the stack repo.
