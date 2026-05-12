@@ -1,28 +1,64 @@
-# Full Starter (Placeholder)
+# Full Starter
 
-This directory will hold the working full starter — a deployable Nx monorepo with three apps (Next.js website + React+Vite dashboard + NestJS API), three libs (ui, auth, shared), Postgres + Redis via docker-compose, and custom JWT auth. **It is not built yet.** Phase 4 of the bloom rollout addresses this, drawing on the existing hatch repo content as the starting point.
+Nx monorepo with three apps and three libs. The bloom full profile — choose this when you need owned auth/db, multi-team separation, or on-prem portability.
 
-## What it will be when built
+**Default for most products is the lite starter.** See [`../lite/`](../lite/) and [`../../profiles/full.yaml`](../../profiles/full.yaml) for the decision guide.
 
-Salvaged from the retired [hatch](https://github.com/derrybirkett/hatch) repo, structured as a static template (not a generator). See [hatch/TOMBSTONE.md](https://github.com/derrybirkett/hatch) for the salvage map.
+## What's included
 
-- pnpm + Nx workspace
-- `apps/website` — Next.js 15 marketing site
-- `apps/dashboard` — React 18 + Vite SPA
-- `apps/api` — NestJS 11 REST API with JWT + bcrypt auth
-- `libs/ui` — shared component library (Button, Input, Card, Badge, Alert)
-- `libs/auth` — auth context, protected route guard
-- `libs/shared` — api client, shared types
-- `docker-compose.yml` with Postgres 16 + Redis 7
-- Multi-stage Dockerfiles per app
-- Playwright e2e covering the full auth flow across Chromium, Firefox, WebKit
-- GitHub Actions CI (typecheck + lint + build + e2e + audit)
-- Deployment paths for Vercel (website), Railway (api), Docker Hub (full stack)
+- **Nx** workspace with `affected` commands for fast CI
+- **apps/website** — Next.js 16 marketing site (public)
+- **apps/dashboard** — React 18 + Vite SPA (authenticated)
+- **apps/api** — NestJS 11 REST API with JWT + bcrypt auth
+- **libs/ui** — shared component library (Button, Input, Card, Badge, Alert)
+- **libs/auth** — auth context, protected route guard, useAuth/useUser hooks
+- **libs/shared** — api client, shared types, utils, validation
+- **docker-compose.yml** — Postgres 16 + Redis 7 + all three apps
+- **Multi-stage Dockerfiles** for each app
+- **Playwright e2e** for the core auth flow
+- **pnpm** throughout
 
-## Exit criterion
+## Get started
 
-A fresh person can clone this starter, run `pnpm install && docker-compose up`, and see all three apps running locally within 10 minutes. CI passes on a fresh PR.
+```bash
+# 1. Install
+pnpm install
 
-## Until then
+# 2. Set env vars
+cp .env.example .env
 
-The contract is documented in [`../../profiles/full.yaml`](../../profiles/full.yaml). The existing hatch repo is the working reference until this template is built.
+# 3. Start infrastructure + apps
+docker compose up
+```
+
+All three apps will be running:
+- Website: http://localhost:4201
+- Dashboard: http://localhost:4200
+- API: http://localhost:4202
+
+## Dev without Docker
+
+```bash
+# Start Postgres + Redis only
+docker compose up postgres redis
+
+# Then run all apps
+pnpm dev
+
+# Or individually
+pnpm website:dev
+pnpm dashboard:dev
+pnpm api:dev
+```
+
+## Rename from my-app
+
+Search-and-replace `my-app` and `my_app` throughout to rename the project. Key locations: `package.json`, `tsconfig.base.json`, `docker-compose.yml`, `.env.example`, lib path aliases.
+
+## Deploy
+
+See [`../../docs/deployment-options.md`](../../docs/deployment-options.md) for Vercel (website) + Railway (API) vs full Docker Hub patterns.
+
+## Graduating from lite to full
+
+Record the migration as an ADR in your product's `decisions/` directory explaining which graduation signal was met (see `../../profiles/full.yaml`).
