@@ -251,6 +251,8 @@ configs:
   - prettier: configs/prettier/.prettierrc
   - github-actions-ci: configs/github/ci.yml
   - git-no-main-commits: configs/git/hooks/pre-commit-no-main
+  - git-no-main-push: configs/git/hooks/pre-push-no-main
+  - e2e-auth-flow: templates/e2e/auth-flow.spec.ts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DEVIATION POLICY
