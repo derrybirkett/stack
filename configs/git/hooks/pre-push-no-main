@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# pre-push hook — block direct pushes to main.
+#
+# Install into a product: copy to .git/hooks/pre-push and chmod +x.
+# bloom-init does not install this automatically (unlike pre-commit-no-main),
+# because push protection is optional and teams vary. Install manually when you
+# want the extra guard.
+#
+# Salvaged from the retired prefs repo.
+
+protected="main"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  branch=$(echo "$remote_ref" | sed 's|refs/heads/||')
+  if [ "$branch" = "$protected" ]; then
+    echo "Direct push to '$protected' is not allowed."
+    echo "Open a PR from your feature branch instead."
+    exit 1
+  fi
+done
+
+exit 0
