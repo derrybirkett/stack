@@ -2,18 +2,27 @@
 #
 # pre-push hook — block direct pushes to main.
 #
-# Install into a product: copy to .git/hooks/pre-push and chmod +x.
-# bloom-init does not install this automatically (unlike pre-commit-no-main),
-# because push protection is optional and teams vary. Install manually when you
-# want the extra guard.
+# Installed automatically by bloom-init alongside pre-commit-no-main; it is
+# the backstop that blocks pushing main even when the commit hook was
+# bypassed (e.g. `--no-verify`, or a tool that skips hooks).
+#
+# The one allowed push to main is the initial publish: when the remote main
+# branch does not exist yet (remote sha is the null sha), the push goes
+# through so the bootstrap commit can be published. Everything after that
+# must go via a feature branch and PR.
+#
+# Manual install into an existing product:
+#   cp .bloom/stack/configs/git/hooks/pre-push-no-main .git/hooks/pre-push
+#   chmod +x .git/hooks/pre-push
 #
 # Salvaged from the retired prefs repo.
 
 protected="main"
+null_sha="0000000000000000000000000000000000000000"
 
 while read local_ref local_sha remote_ref remote_sha; do
   branch=$(echo "$remote_ref" | sed 's|refs/heads/||')
-  if [ "$branch" = "$protected" ]; then
+  if [ "$branch" = "$protected" ] && [ "$remote_sha" != "$null_sha" ]; then
     echo "Direct push to '$protected' is not allowed."
     echo "Open a PR from your feature branch instead."
     exit 1
